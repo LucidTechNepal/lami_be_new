@@ -79,10 +79,9 @@ io.on("connection", async (socket) => {
 
   // Handle chat messages
   socket.on("chat", async (data) => {
-    console.log(data)
     try {
       const { senderId, receiverId, message } = data;
-      console.log(senderId, receiverId, message, "data");
+      console.log(senderId, receiverId, message,"data")
       const savedMessage = await createMessage(senderId, receiverId, message);
       if (savedMessage) {
         const senderSocketId = onlineUsers.get(userId);
