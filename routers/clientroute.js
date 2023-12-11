@@ -225,44 +225,42 @@ client_route.post('/signup',image_upload.single('image'), function (req, res){
 */
 
 //Route for Client Registration
-client_route.post("/signup",image_upload.single('image'), function (req, res) {
+client_route.post("/signup", image_upload.single("image"), function (req, res) {
   const full_name = req.body.full_name;
   const email = req.body.email;
- 
+
   const phone = req.body.phone;
-  const image=req.file.filename;
-  const gender=req.body.gender;
+  const image = req.file.filename;
+  const gender = req.body.gender;
 
   console.log(req);
   //using bcrypt module to encrypt client password
 
- 
-    var client_data = new Clients({
-      full_name: full_name,
-      email: email,
-      gender:gender,
-      phone: phone,
-      image:image,
-    });
+  var client_data = new Clients({
+    full_name: full_name,
+    email: email,
+    gender: gender,
+    phone: phone,
+    image: image,
+  });
 
-    console.log("From client register route");
+  console.log("From client register route");
 
-    client_data
-      .save()
-      .then(function (user) {
-        const userEmail = user.email; // Retrieve the user's email from the saved user object
+  client_data
+    .save()
+    .then(function (user) {
+      const userEmail = user.email; // Retrieve the user's email from the saved user object
 
-        // Send email to the frontend
-        res.status(201).json({
-          message: "Client has been registered successfully",
-          email: userEmail,
-        });
-      })
-      .catch(function (e) {
-        console.log(e);
-        res.status(500).json({ message: e });
+      // Send email to the frontend
+      res.status(201).json({
+        message: "Client has been registered successfully",
+        email: userEmail,
       });
-
+    })
+    .catch(function (e) {
+      console.log(e);
+      res.status(500).json({ message: e });
+    });
 });
 
 // client_route.post("/signup", function (req, res) {
@@ -380,39 +378,40 @@ client_route.post('/login', function (req, res) {
 
 client_route.get("/showall", verifyClient, async function (req, res) {
   const requestedUser = req.user;
-console.log(requestedUser);
+  console.log(requestedUser);
 
-try {
-  if (!requestedUser) {
-    return res.status(400).json({ message: "No user found" });
+  try {
+    if (!requestedUser) {
+      return res.status(400).json({ message: "No user found" });
+    }
+
+    const requestedUserDetails = await Clients.findOne({
+      _id: requestedUser._id,
+    });
+
+    if (!requestedUserDetails) {
+      return res.status(404).json({ message: "User details not found" });
+    }
+
+    const filter = {
+      _id: { $ne: requestedUserDetails._id.toString() },
+      gender: requestedUserDetails.gender === "male" ? "female" : "male",
+    };
+
+    console.log(filter);
+
+    const filteredClients = await Clients.find(filter);
+
+    console.log(filteredClients);
+
+    if (!filteredClients) {
+      return res.status(404).json({ message: "User details not found" });
+    }
+
+    res.status(200).json({ success: true, data: filteredClients });
+  } catch (e) {
+    res.status(500).json({ message: e.message });
   }
-
-  const requestedUserDetails = await Clients.findOne({ _id: requestedUser._id });
-
-  if (!requestedUserDetails) {
-    return res.status(404).json({ message: "User details not found" });
-  }
-
-  const filter = {
-  _id: { $ne: requestedUserDetails._id.toString() },
-  gender: requestedUserDetails.gender === "male" ? "female" : "male",
-};
-
-  console.log(filter);
-
-  const filteredClients = await Clients.find(filter);
-
-  console.log(filteredClients)
-
-  if (!filteredClients) {
-    return res.status(404).json({ message: "User details not found" });
-  }
-
-  res.status(200).json({ success: true, data: filteredClients });
-} catch (e) {
-  res.status(500).json({ message: e.message });
-}
-
 });
 
 client_route.get("/details/:id", function (req, res) {
@@ -693,30 +692,45 @@ client_route.post("/checkPhoneNumber", async (req, res) => {
 
 // fetch all connected users for particular users
 client_route.get("/getConnection", verifyClient, async (req, res) => {
-  const loginUserId = req.user;
   try {
-    const connectedUser = await ConnectionRequests.find({
-      toUser: loginUserId,
-      status: "accepted",
-      isFriend: true,
+    const loginUserId = req.user;
+
+    const connectedUsers = await ConnectionRequests.find({
+      $or: [
+        { fromUser: loginUserId, status: "accepted", isFriend: true },
+        { toUser: loginUserId, status: "accepted", isFriend: true },
+      ],
     });
 
-    const result = await Promise.all(
-      connectedUser.map(async (request) => {
-        const user = await Clients.findOne({ _id: request.fromUser });
+    const results = await Promise.all(
+      connectedUsers.map(async (request) => {
+        let otherUserId;
+
+        if (request.fromUser.toString() === loginUserId.toString()) {
+          otherUserId = request.toUser.toString();
+        } else if (request.toUser.toString() === loginUserId.toString()) {
+          otherUserId = request.fromUser.toString();
+        } else {
+          return;
+        }
+
+
+        const otherUserData = await Clients.findById(otherUserId);
+
         return {
-          user,
-          acceptedDate: request.updateAt,
+          toUser: otherUserData,
+          isFriend: true,
+          acceptedDate: request.updatedAt,
         };
       })
     );
-    result.forEach((item, index) => {
-      result[index].acceptedDate = connectedUser[index].updatedAt;
-    });
+
+    const filteredResults = results.filter(Boolean); // Remove skipped elements
+
     res.status(200).json({
       status: 200,
       message: "Connected connection request fetched successfully",
-      result,
+      result: filteredResults,
     });
   } catch (error) {
     console.error(error);
