@@ -3,6 +3,7 @@ const Message = require("../models/Message");
 const { Clients } = require("../models/client");
 
 const createMessage = async (senderId, receiverId, message) => {
+  console.log(senderId, receiverId, message)
   try {
     const newConversation = new Conversation({
       members: [senderId, receiverId],

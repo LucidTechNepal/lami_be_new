@@ -20,6 +20,7 @@ const paymentDetailsSchema = new mongoose.Schema({
   paymentStatus: {
     type: String,
     enum: ["Pending", "Successful", "Failed"],
+    
     required: true,
   },
 });
@@ -47,6 +48,7 @@ const userSubscriptionSchema = new mongoose.Schema(
     status: {
       type: String,
       enum: ["Active", "Expired", "Canceled"],
+      default: "Active",
       required: true,
     },
     paymentDetails: paymentDetailsSchema,

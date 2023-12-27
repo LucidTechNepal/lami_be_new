@@ -1,56 +1,53 @@
 const router = require("express").Router();
 const subscriptionDTO = require("../dto/subscriptionDto");
 const Subscription = require("../models/subscription");
+const {Clients} = require("../models/client");
 const UserSubscription = require("../models/userSubscription");
 
 const UserSubscriptionStatus = {
-  NOTSTARTED: 'NOTSTARTED',
-  ACTIVE: 'ACTIVE',
-  EXPIRED: 'EXPIRED',
-  CANCELED: 'CANCELED',
+  NOTSTARTED: "NOTSTARTED",
+  ACTIVE: "ACTIVE",
+  EXPIRED: "EXPIRED",
+  CANCELED: "CANCELED",
 };
 
 const PaymentStatus = {
-  SUCCESS: 'SUCCESS',
-  PENDING: 'PENDING',
-  CANCELED: 'CANCELED',
+  SUCCESS: "SUCCESS",
+  PENDING: "PENDING",
+  CANCELED: "CANCELED",
 };
-
 
 router.post("/", async (req, res) => {
   const { error, value } = subscriptionDTO.validate(req.body);
+
   if (error) {
     return res.status(400).json({ error: error.details[0].message });
   }
 
-  try {
-    const pricing = value.duration.map((duration) => {
-      let calculatedPrice;
-      if (duration === 1) {
-        calculatedPrice = value.price;
-      } else if (duration === 12) {
-        calculatedPrice = duration * value.price;
-      } 
+  console.log(value);
 
-      return {
-        duration: duration,
-        price: calculatedPrice,
-      };
-    })
-    console.log(pricing,"pricing")
-    const newSubscription = Subscription.create({
+  try {
+    const pricing = value.pricing.map((pricingItem) => ({
+      duration: pricingItem.duration,
+      price: pricingItem.price,
+    }));
+
+    console.log(pricing, "pricing");
+
+    const newSubscription = await Subscription.create({
       name: value.name,
       description: value.description,
       price: value.price,
-      duration: value.duration,
       pricing: pricing,
       features: value.features,
     });
+
     res.status(201).json({
       message: "Subscription package created successfully",
       subscription: newSubscription,
     });
   } catch (error) {
+    console.error(error.stack);
     res.status(500).json({ error: "Internal Server Error" });
   }
 });
@@ -94,23 +91,23 @@ router.get("/:id", async (req, res) => {
 // api for subscribe
 router.post("/subscribe", async (req, res) => {
   try {
-    const { userId, packageId , paymentDetails, duration } =
-      req.body;
-    
+    const { userId, packageId, duration, paymentDetails } = req.body;
+
     const startDate = new Date();
     let endDate;
-    if(duration === 1) {
+
+    if (duration === 1) {
       endDate = new Date(startDate);
       endDate.setMonth(endDate.getMonth() + 1);
-    } else if (packageDuration === 12) {
+    } else if (duration === 12) {
       endDate = new Date(startDate);
       endDate.setFullYear(endDate.getFullYear() + 1);
     } else {
       throw new Error("Invalid package duration");
     }
-    const status = UserSubscriptionStatus.ACTIVE;
-    const paymentStatus = PaymentStatus.SUCCESS;
 
+    const status = "Active";
+    const paymentStatus = "Successful";
 
     // Create a new UserSubscription instance
     const userSubscription = new UserSubscription({
@@ -121,18 +118,34 @@ router.post("/subscribe", async (req, res) => {
       status,
       paymentDetails: {
         ...paymentDetails,
-        paymentStatus: paymentStatus
+        paymentStatus: paymentStatus,
       },
     });
 
     // Save the UserSubscription to the database
     const savedUserSubscription = await userSubscription.save();
 
+    // Update user type
+    if (savedUserSubscription) {
+      const updatedClient = await Clients.findOneAndUpdate(
+        { _id: userId },
+        {
+          $set: {
+            role: "premium"
+          },
+        },
+        { new: true }
+      );
+    }
+
     res.status(201).json({
       message: "Subscription successful",
-      data: savedUserSubscription,
+     
+      
     });
+    
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: "Internal Server Error" });
   }
 });

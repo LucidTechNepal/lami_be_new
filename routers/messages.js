@@ -110,6 +110,7 @@ router.get("/allMessage", verifyClient, async (req, res) => {
           _id: "$sender",
           lastMessage: { $first: "$text" },
           lastMessageDate: { $first: "$createdAt" },
+          receiverId: {$first: "$receiver"},
           seen: { $first: "$seen" },
         },
       },
@@ -126,6 +127,7 @@ router.get("/allMessage", verifyClient, async (req, res) => {
           senderImage: senderUser.userImage,
           lastMessage: message.lastMessage,
           lastMessageDate: message.lastMessageDate,
+          receiverId:message.receiverId,
           seen: message.seen
         };
       })

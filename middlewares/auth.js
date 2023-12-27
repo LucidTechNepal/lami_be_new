@@ -64,6 +64,7 @@ module.exports.socketAuthencation = async function (socket, next) {
     const userId = decoded.clientID;
     const client = await Clients.findById({_id:userId});
     socket.userId = client._id;
+    socket.role = client.role;
     return next();
   } catch (error) {
     socket.emit("authentication-failed", error);
