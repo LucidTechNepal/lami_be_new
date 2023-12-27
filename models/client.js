@@ -12,7 +12,7 @@ const schema_client = new mongoose.Schema({
   image: { type: String },
   maritalStatus: { type: String },
   livesIn: { type: String },
-  birthDate: { type: Date },
+  birthDate: { type: Date ,required: true },
   grewUpIn: { type: String },
   dietPreference: { type: String },
   profession: { type: String },

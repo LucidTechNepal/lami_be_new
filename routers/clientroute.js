@@ -229,12 +229,43 @@ client_route.post("/signup", image_upload.single("image"), function (req, res) {
   const full_name = req.body.full_name;
   const email = req.body.email;
 
+  const birthDate= req.body.birthDate;
+ 
+
   const phone = req.body.phone;
   const image = req.file.filename;
   const gender = req.body.gender;
 
   console.log(req);
   //using bcrypt module to encrypt client password
+
+
+ 
+    var client_data = new Clients({
+      full_name: full_name,
+      email: email,
+      gender:gender,
+      phone: phone,
+      image:image,
+      birthDate:birthDate,
+    });
+
+    console.log("From client register route");
+
+    client_data
+      .save()
+      .then(function (user) {
+        const userEmail = user.email; // Retrieve the user's email from the saved user object
+
+        // Send email to the frontend
+        res.status(201).json({
+          message: "Client has been registered successfully",
+          email: userEmail,
+        });
+      })
+      .catch(function (e) {
+        console.log(e);
+        res.status(500).json({ message: e });
 
   var client_data = new Clients({
     full_name: full_name,
@@ -255,6 +286,7 @@ client_route.post("/signup", image_upload.single("image"), function (req, res) {
       res.status(201).json({
         message: "Client has been registered successfully",
         email: userEmail,
+
       });
     })
     .catch(function (e) {
