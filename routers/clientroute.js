@@ -228,6 +228,7 @@ client_route.post('/signup',image_upload.single('image'), function (req, res){
 client_route.post("/signup",image_upload.single('image'), function (req, res) {
   const full_name = req.body.full_name;
   const email = req.body.email;
+  const birthDate= req.body.birthDate;
  
   const phone = req.body.phone;
   const image=req.file.filename;
@@ -243,6 +244,7 @@ client_route.post("/signup",image_upload.single('image'), function (req, res) {
       gender:gender,
       phone: phone,
       image:image,
+      birthDate:birthDate,
     });
 
     console.log("From client register route");
